@@ -1421,3 +1421,48 @@ jobs:
           github-token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
           label: ${{ needs.start-runner.outputs.label-horovod-ray }}
           ec2-instance-id: ${{ needs.start-runner.outputs.ec2-instance-id-horovod-ray }}
+
+  sync-files:
+    name: "Docs and Example Sync (${{ matrix.name }})"
+    needs: [validate-workflow]
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Docs Summary
+            left_file: README.rst
+            right_file: docs/summary.rst
+            init: sed -i -e s/docs\///g README.rst
+
+          - name: Examples Keras Spark3
+            left_file: examples/spark/keras/keras_spark_rossmann_run.py
+            right_file: examples/spark/keras/keras_spark3_rossmann.py
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Diffing ${{ matrix.left_file }} with ${{ matrix.right_file }}
+        env:
+          LEFT: ${{ matrix.left_file }}
+          RIGHT: ${{ matrix.right_file }}
+          INIT: ${{ matrix.init }}
+        run: |
+          $INIT
+
+          patch --quiet -p0 $LEFT ${RIGHT}.patch -o ${LEFT}.expected
+          if ! diff -q ${LEFT}.expected --label $LEFT $RIGHT
+          then
+            echo
+            echo "::error::Files are out-of-sync: $LEFT vs. $RIGHT"
+            echo "Unexpected differences are:"
+            diff ${LEFT}.expected --label $LEFT $RIGHT || true
+
+            echo
+            echo "Use the following as ${RIGHT}.patch to accept those changes:"
+            diff $LEFT $RIGHT || true
+
+            false
+          fi
