@@ -40,6 +40,7 @@
 #define HOROVOD_LOCAL_SIZE "HOROVOD_LOCAL_SIZE"
 #define HOROVOD_CROSS_RANK "HOROVOD_CROSS_RANK"
 #define HOROVOD_CROSS_SIZE "HOROVOD_CROSS_SIZE"
+#define HOROVOD_ELASTIC "HOROVOD_ELASTIC"
 
 namespace horovod {
 namespace common {
@@ -52,24 +53,18 @@ struct GlooContext {
 
   void Initialize(const std::string& gloo_iface);
 
-  void InitializeForProcessSet(const GlooContext& global_context,
-                               const std::vector<int>& ranks);
-
   void Finalize();
 
-  std::shared_ptr<gloo::Context> GetGlooContext(Communicator comm) const;
+  std::shared_ptr<gloo::Context> GetGlooContext(Communicator communicator);
 
   void Enable() {
     enabled_ = true;
     LOG(DEBUG) << "Gloo context enabled.";
   }
 
-  bool IsEnabled() const { return enabled_; }
+  bool IsEnabled() { return enabled_; }
 
-  std::shared_ptr<gloo::Context> global_ctx;
-
-  // Contexts for the associated process set:
-  std::shared_ptr<gloo::Context> ctx = nullptr;  // entire process set
+  std::shared_ptr<gloo::Context> ctx = nullptr; // Global context
   std::shared_ptr<gloo::Context> cross_ctx = nullptr;
   std::shared_ptr<gloo::Context> local_ctx = nullptr;
 
@@ -77,10 +72,6 @@ private:
   // Flag indicating whether gloo is enabled.
   bool enabled_ = false;
   bool reset_ = false;
-
-  std::chrono::milliseconds timeout_;
-  std::string hostname_;
-  std::string gloo_iface_;
 };
 
 } // namespace common

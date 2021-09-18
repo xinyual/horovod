@@ -157,10 +157,10 @@ def run_fn(func, reset):
 
         try:
             while True:
-                try:
-                    if not skip_sync:
-                        state.sync()
+                if not skip_sync:
+                    state.sync()
 
+                try:
                     return func(state, *args, **kwargs)
                 except HorovodInternalError:
                     state.restore()

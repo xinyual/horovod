@@ -77,8 +77,7 @@ public:
 
   void WaitForEvents(std::queue<std::pair<std::string, hipEvent_t>>& event_queue,
       const std::vector<TensorTableEntry>& entries, Timeline& timeline,
-      const std::function<void()>& error_check_callback,
-      bool elastic) {
+      const std::function<void()>& error_check_callback) {
     while (!event_queue.empty()) {
       std::string name;
       hipEvent_t event;

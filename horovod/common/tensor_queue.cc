@@ -90,18 +90,6 @@ void TensorQueue::GetTensorEntriesFromResponse(
   {
     // Lock on the tensor table.
     std::lock_guard<std::mutex> guard(mutex_);
-    if (response.response_type() == Response::JOIN) {
-      assert(response.tensor_names().size() == 1);
-      assert(response.tensor_names()[0] == JOIN_TENSOR_NAME);
-      auto iter = tensor_table_.find(JOIN_TENSOR_NAME);
-      assert(iter != tensor_table_.end());
-
-      entries.push_back(std::move(iter->second));
-
-      // The tensor table will be cleared of the join tensor later in
-      // RemoveJoinTensor().
-      return;
-    }
     int64_t i = 0;
     for (auto& name : response.tensor_names()) {
       assert(response.response_type() == Response::ALLREDUCE ||
@@ -109,8 +97,8 @@ void TensorQueue::GetTensorEntriesFromResponse(
              response.response_type() == Response::BROADCAST ||
              response.response_type() == Response::ALLTOALL ||
              response.response_type() == Response::ADASUM ||
-             response.response_type() == Response::ERROR);
-
+             response.response_type() == Response::ERROR ||
+             response.response_type() == Response::REDUCE);
       if (!joined) {
         // We should never fail at finding this key in the tensor table.
         auto iter = tensor_table_.find(name);
@@ -139,6 +127,7 @@ void TensorQueue::GetTensorEntriesFromResponse(
       }
       i++;
     }
+
   }
 }
 

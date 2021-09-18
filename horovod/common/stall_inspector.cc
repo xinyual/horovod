@@ -23,8 +23,7 @@
 namespace horovod {
 namespace common {
 
-bool StallInspector::CheckForStalledTensors(
-    const std::vector<int>& global_ranks) {
+bool StallInspector::CheckForStalledTensors(int global_size) {
   bool should_shut_down = false;
   auto now = std::chrono::steady_clock::now();
   std::map<int32_t, std::set<std::string>> missing_ranks;
@@ -51,8 +50,7 @@ bool StallInspector::CheckForStalledTensors(
         ready_ranks.insert(rank);
       }
 
-      auto process_set_size = global_ranks.size();
-      for (int32_t rank = 0; rank < static_cast<int32_t>(process_set_size); ++rank) {
+      for (int32_t rank = 0; rank < global_size; ++rank) {
         if (ready_ranks.find(rank) == ready_ranks.end()) {
           missing_ranks[rank].insert(tensor_name);
           if (stall_shutdown_time > std::chrono::seconds(0) &&
@@ -77,7 +75,7 @@ bool StallInspector::CheckForStalledTensors(
             << std::endl
             << "Missing ranks:";
     for (auto& kv : missing_ranks) {
-      message << std::endl << global_ranks[kv.first];
+      message << std::endl << kv.first;
       if (shutdown_ranks.find(kv.first) != shutdown_ranks.end()) {
         message << "!";
       }
@@ -128,11 +126,11 @@ void StallInspector::InvalidateStalledCachedTensors(
 }
 
 void StallInspector::RecordUncachedTensorStart(const std::string& tensor_name,
-                                               int rank, int process_set_size) {
+                                               int rank, int global_size) {
   auto table_iter = uncached_tensor_table.find(tensor_name);
   if (table_iter == uncached_tensor_table.end()) {
     std::vector<int> ranks = {rank};
-    ranks.reserve(static_cast<unsigned long>(process_set_size));
+    ranks.reserve(static_cast<unsigned long>(global_size));
     auto now = std::chrono::steady_clock::now();
     uncached_tensor_table.emplace(tensor_name,
                                   std::make_tuple(std::move(ranks), now));

@@ -22,6 +22,7 @@ namespace common {
 
 OperationManager::OperationManager(ParameterManager* param_manager,
                                    std::vector<std::shared_ptr<AllreduceOp>> allreduce_ops,
+                                   std::vector<std::shared_ptr<AllreduceOp>> reduce_ops,
                                    std::vector<std::shared_ptr<AllgatherOp>> allgather_ops,
                                    std::vector<std::shared_ptr<BroadcastOp>> broadcast_ops,
                                    std::vector<std::shared_ptr<AlltoallOp>> alltoall_ops,
@@ -35,7 +36,8 @@ OperationManager::OperationManager(ParameterManager* param_manager,
       alltoall_ops_(std::move(alltoall_ops)),
       join_op_(std::move(join_op)),
       adasum_ops_(std::move(adasum_ops)),
-      error_op_(std::move(error_op)) {}
+      error_op_(std::move(error_op)),
+      reduce_ops_(std::move(reduce_ops)){}
 
 Status OperationManager::ExecuteAllreduce(std::vector<TensorTableEntry>& entries,
                                           const Response& response) const {
@@ -46,6 +48,17 @@ Status OperationManager::ExecuteAllreduce(std::vector<TensorTableEntry>& entries
   }
   throw std::logic_error("No Allreduce operation enabled");
 }
+
+Status OperationManager::ExecuteReduce(std::vector<TensorTableEntry>& entries,
+                                         const Response& response) const {
+  for (auto& op : reduce_ops_) {
+    if (op->Enabled(*param_manager_, entries, response)) {
+      return op->Execute(entries, response);
+    }
+  }
+  throw std::logic_error("No reduce operation enabled");
+}
+
 
 Status OperationManager::ExecuteAllgather(std::vector<TensorTableEntry>& entries,
                                           const Response& response) const {
@@ -78,9 +91,8 @@ Status OperationManager::ExecuteAlltoall(std::vector<TensorTableEntry>& entries,
 }
 
 Status OperationManager::ExecuteJoin(std::vector<TensorTableEntry>& entries,
-                                     const Response& response,
-                                     ProcessSet& process_set) const {
-  return join_op_->Execute(entries, response, process_set);
+                                          const Response& response) const {
+  return join_op_->Execute(entries, response);
 }
 
 Status OperationManager::ExecuteAdasum(std::vector<TensorTableEntry>& entries,
@@ -99,8 +111,7 @@ Status OperationManager::ExecuteError(std::vector<TensorTableEntry>& entries,
 }
 
 Status OperationManager::ExecuteOperation(std::vector<TensorTableEntry>& entries,
-                                          const Response& response,
-                                          ProcessSet& process_set) const {
+                                          const Response& response) const {
   if (response.response_type() == Response::ALLREDUCE) {
     return ExecuteAllreduce(entries, response);
   } else if (response.response_type() == Response::ALLGATHER) {
@@ -110,10 +121,12 @@ Status OperationManager::ExecuteOperation(std::vector<TensorTableEntry>& entries
   } else if (response.response_type() == Response::ALLTOALL) {
     return ExecuteAlltoall(entries, response);
   } else if (response.response_type() == Response::JOIN) {
-    return ExecuteJoin(entries, response, process_set);
+    return ExecuteJoin(entries, response);
   } else if (response.response_type() == Response::ADASUM) {
     return ExecuteAdasum(entries, response);
-  } else if (response.response_type() == Response::ERROR) {
+  } else if (response.response_type() == Response::REDUCE) {
+    return ExecuteReduce(entries, response);
+  }else if (response.response_type() == Response::ERROR) {
     return ExecuteError(entries, response);
   } else {
     throw std::logic_error("No operation found for response type provided");

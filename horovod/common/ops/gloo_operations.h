@@ -44,7 +44,7 @@ public:
 
 template <typename T> class GlooAlgorithms : public IGlooAlgorithms {
 public:
-  explicit GlooAlgorithms(GlooContext* gloo_context);
+  GlooAlgorithms(GlooContext* gloo_context);
 
   ~GlooAlgorithms() = default;
 
@@ -57,7 +57,7 @@ public:
 
   void Alltoall(void* buffer_data, void* buffer_out,
                 std::vector<int64_t>& sendcounts,
-                std::vector<int64_t>& recvcounts) override;
+                std::vector<int64_t>& recvcounts);
 
   int ElementSize() const override;
 
@@ -67,7 +67,7 @@ private:
 
 class GlooAllreduce : public AllreduceOp {
 public:
-  explicit GlooAllreduce(HorovodGlobalState* global_state);
+  GlooAllreduce(GlooContext* gloo_context, HorovodGlobalState* global_state);
 
   virtual ~GlooAllreduce() = default;
 
@@ -77,11 +77,14 @@ public:
   bool Enabled(const ParameterManager& param_manager,
                const std::vector<TensorTableEntry>& entries,
                const Response& response) const override;
+
+protected:
+  GlooContext* gloo_context_;
 };
 
 class GlooAllgather : public AllgatherOp {
 public:
-  explicit GlooAllgather(HorovodGlobalState* global_state);
+  GlooAllgather(GlooContext* gloo_context, HorovodGlobalState* global_state);
 
   Status Execute(std::vector<TensorTableEntry>& entries,
                  const Response& response) override;
@@ -89,11 +92,14 @@ public:
   bool Enabled(const ParameterManager& param_manager,
                const std::vector<TensorTableEntry>& entries,
                const Response& response) const override;
+
+protected:
+  GlooContext* gloo_context_;
 };
 
 class GlooBroadcast : public BroadcastOp {
 public:
-  explicit GlooBroadcast(HorovodGlobalState* global_state);
+  GlooBroadcast(GlooContext* gloo_context, HorovodGlobalState* global_state);
 
   Status Execute(std::vector<TensorTableEntry>& entries,
                  const Response& response) override;
@@ -101,18 +107,23 @@ public:
   bool Enabled(const ParameterManager& param_manager,
                const std::vector<TensorTableEntry>& entries,
                const Response& response) const override;
+
+protected:
+  GlooContext* gloo_context_;
 };
 
 class GlooAlltoall : public AlltoallOp {
 public:
-  explicit GlooAlltoall(HorovodGlobalState* global_state);
+  GlooAlltoall(GlooContext* gloo_context, HorovodGlobalState* global_state);
 
-  Status Execute(std::vector<TensorTableEntry>& entries,
-                 const Response& response) override;
+  Status Execute(std::vector<TensorTableEntry>& entries, const Response& response) override;
 
   bool Enabled(const ParameterManager& param_manager,
                const std::vector<TensorTableEntry>& entries,
                const Response& response) const override;
+
+protected:
+  GlooContext* gloo_context_;
 };
 
 } // namespace common

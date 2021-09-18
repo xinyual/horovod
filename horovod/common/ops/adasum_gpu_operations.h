@@ -39,8 +39,6 @@ public:
                  const Response& response) override;
 
 protected:
-  void WaitForData(std::vector<TensorTableEntry>& entries) override;
-
   Status NcclHierarchical(std::vector<TensorTableEntry>& entries,
                           const Response& response);
 

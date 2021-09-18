@@ -41,46 +41,30 @@ public:
 
 struct MPIContext {
 
-  // Pass ranks that will be used to create global communicator. If no ranks are
-  // passed, we will duplicate the entire MPI_COMM_WORLD.
-  void Enable(const std::vector<int>& ranks) {
-    if (!ranks.empty()) {
-      ranks_ = ranks;
-    }
+  void Enable() {
     enabled_ = true;
     LOG(DEBUG) << "MPI context enabled.";
   };
 
-  bool IsEnabled() const { return enabled_; }
+  bool IsEnabled() { return enabled_; }
 
   // Take an argument of context manager pointer that will take care of
   // initialization of MPI environment.
-  void Initialize(MPIContextManager& ctx_manager);
-
-  // If ranks is empty, the process set will include all Horovod processes.
-  void InitializeForProcessSet(const MPIContext& global_context,
-                               const std::vector<int>& ranks);
-
-  void FinalizeWithoutEnv();
+  void Initialize(const std::vector<int>& ranks,
+                  MPIContextManager& ctx_manager);
 
   // Take an argument of context manager pointer that will take care of
   // finalization of MPI environment.
   void Finalize(MPIContextManager& ctx_manager);
+  MPI_Datatype GetMPIDataType(std::shared_ptr<Tensor> tensor);
 
-  MPI_Datatype GetMPIDataType(std::shared_ptr<Tensor> tensor) const;
+  MPI_Datatype GetMPIDataType(DataType dtype);
 
-  MPI_Datatype GetMPIDataType(DataType dtype) const;
+  MPI_Op GetMPISumOp(DataType dtype);
 
-  MPI_Op GetMPISumOp(DataType dtype) const;
+  MPI_Comm GetMPICommunicator(Communicator comm);
 
-  // Communicators handled here are restricted to a single process set.
-  // If the running process is not part of that set, these communicators
-  // remain MPI_COMM_NULL.
-  MPI_Comm GetMPICommunicator(Communicator comm) const;
-
-  int GetMPITypeSize(DataType dtype) const;
-
-  std::vector<int> ranks_;
+  int GetMPITypeSize(DataType dtype);
 
   // Flag indicating whether mpi is enabled.
   bool enabled_ = false;
@@ -90,23 +74,19 @@ struct MPIContext {
   MPI_Op mpi_float16_sum;
 
   // Private MPI communicator for Horovod to ensure no collisions with other
-  // threads using MPI, incorporates all processes known to Horovod.
-  // Communicators for process subsets will be based on global_comm.
-  MPI_Comm global_comm = MPI_COMM_NULL;
+  // threads using MPI.
+  MPI_Comm mpi_comm;
 
-  // Communicator for the entire process set.
-  MPI_Comm mpi_comm = MPI_COMM_NULL;
+  // Node-local communicator.
+  MPI_Comm local_comm;
 
-  // Node-local communicator for the process set.
-  MPI_Comm local_comm = MPI_COMM_NULL;
-
-  // Cross-node communicator for the process set for hierarchical allreduce.
-  MPI_Comm cross_comm = MPI_COMM_NULL;
+  // Cross-node communicator for hierarchical allreduce.
+  MPI_Comm cross_comm;
 
   // MPI Window used for shared memory allgather
   MPI_Win window;
 
-  // Whether mpi context should be finalized.
+  // Whether mpi context should be finalize.
   bool should_finalize = false;
 };
 

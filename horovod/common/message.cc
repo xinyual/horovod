@@ -111,6 +111,9 @@ const std::string& Request::RequestType_Name(RequestType value) {
     case RequestType::ALLTOALL:
       static const std::string alltoall("ALLTOALL");
       return alltoall;
+    case RequestType::REDUCE:
+      static const std::string reduce("REDUCE");
+      return reduce;
     default:
       static const std::string unknown("<unknown>");
       return unknown;
@@ -300,6 +303,9 @@ const std::string& Response::ResponseType_Name(ResponseType value) {
     case ResponseType::ALLTOALL:
       static const std::string alltoall("ALLTOALL");
       return alltoall;
+    case ResponseType::REDUCE:
+      static const std::string reduce("REDUCE");
+      return reduce;
     case ResponseType::ERROR:
       static const std::string error("ERROR");
       return error;
@@ -391,21 +397,9 @@ double Response::prescale_factor() const { return prescale_factor_; };
 
 double Response::postscale_factor() const { return postscale_factor_; };
 
-void Response::set_prescale_factor(const double prescale_factor) {
-  prescale_factor_ = prescale_factor;
-};
+void Response::set_prescale_factor(const double prescale_factor) { prescale_factor_ = prescale_factor; };
 
-void Response::set_postscale_factor(const double postscale_factor) {
-  postscale_factor_ = postscale_factor;
-};
-
-int Response::last_joined_rank() const {
-  return last_joined_rank_;
-}
-
-void Response::set_last_joined_rank(int value) {
-  last_joined_rank_ = value;
-}
+void Response::set_postscale_factor(const double postscale_factor) { postscale_factor_ = postscale_factor; };
 
 void Response_ParseFromWire(Response& response,
                             const wire::Response* obj) {
@@ -421,7 +415,6 @@ void Response_ParseFromWire(Response& response,
                                                  obj->tensor_sizes()->end()));
   response.set_prescale_factor(obj->prescale_factor());
   response.set_postscale_factor(obj->postscale_factor());
-  response.set_last_joined_rank(obj->last_joined_rank());
 }
 
 void Response::ParseFromBytes(Response& response, const uint8_t* input) {
@@ -450,7 +443,6 @@ void Response_SerializeToWire(const Response& response,
   response_builder.add_tensor_sizes(tensor_sizes_wire);
   response_builder.add_prescale_factor(response.prescale_factor());
   response_builder.add_postscale_factor(response.postscale_factor());
-  response_builder.add_last_joined_rank(response.last_joined_rank());
   obj = response_builder.Finish();
 }
 
